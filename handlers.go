@@ -10,6 +10,21 @@ import (
 // COMMANDS FUNCTIONS START
 // ####################################
 
+func handleHelpCommand() {
+	fmt.Println(`
+Valt - Simple Password Vault
+
+Usage:
+   vault new
+   vault list
+   vault get <username>
+   vault update <username>
+   vault delete <username>
+   vault change-username <old> <new>
+   vault change-password <username> <new-password>
+     `)
+}
+
 // vault new
 func handleNewCommand() {
 	var user Profile
@@ -40,8 +55,52 @@ func handleListCommand() {
 // vault change-username existing_username new_username
 func handleChangeUsernameCommand(preUsername, newUsername string) {
 	Profiles := returnAllProfilesFromJson()
+	isExist := false
 
 	for idx, profile := range Profiles {
+		if profile.Username == preUsername {
+			Profiles[idx].Username = newUsername
+			saveFullProfileIntoJson(Profiles)
+
+			fmt.Println("Username is successfully updated now!")
+			isExist = true
+			break
+		}
+	}
+
+	if !isExist {
+		fmt.Println("This username isnt exist!")
+	}
+}
+
+// vault change-username existing_username new_username
+func handleChangePasswordCommand(username, newPassword string) {
+	Profiles := returnAllProfilesFromJson()
+	isExist := false
+
+	for idx, profile := range Profiles {
+		if profile.Username == username {
+			Profiles[idx].Password = newPassword
+			saveFullProfileIntoJson(Profiles)
+
+			fmt.Println("Password is successfully updated now!")
+			isExist = true
+			break
+		}
+	}
+
+	if !isExist {
+		fmt.Println("This username isnt exist!")
+	}
+}
+
+func handleUserDeleteCommand(username string) {
+	profiles := returnAllProfilesFromJson()
+
+	for idx, profile := range profiles {
+		if profile.Username == username {
+
+		}
 
 	}
 
@@ -71,6 +130,19 @@ func returnAllProfilesFromJson() []Profile {
 	}
 
 	return profile
+}
+
+// this saves profiles into the json
+func saveFullProfileIntoJson(profiles []Profile) {
+	data, err := json.MarshalIndent(profiles, "", " ")
+	if err != nil {
+		panic("Error while converting profiles into json!")
+	}
+
+	err = os.WriteFile(fileName, data, 0600)
+	if err != nil {
+		panic("Error while writing on file!")
+	}
 }
 
 // ####################################
