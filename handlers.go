@@ -94,6 +94,7 @@ func handleChangePasswordCommand(username, newPassword string) {
 	}
 }
 
+// vault delete <username>
 func handleUserDeleteCommand(username string) {
 	profiles := returnAllProfilesFromJson()
 	isDeleted := false
