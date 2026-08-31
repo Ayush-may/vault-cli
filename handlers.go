@@ -96,14 +96,20 @@ func handleChangePasswordCommand(username, newPassword string) {
 
 func handleUserDeleteCommand(username string) {
 	profiles := returnAllProfilesFromJson()
+	isDeleted := false
 
 	for idx, profile := range profiles {
 		if profile.Username == username {
-
+			profiles = append(profiles[:idx], profiles[idx+1:]...)
+			saveFullProfileIntoJson(profiles)
+			isDeleted = true
+			break
 		}
-
 	}
 
+	if !isDeleted {
+		fmt.Println("Unable to find this user!")
+	}
 }
 
 // ####################################
