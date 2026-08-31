@@ -14,37 +14,61 @@ type Profile struct {
 	Password string `json:"password"`
 }
 
-// saves data to the vault.json
-func (newProfile Profile) saveProfile() {
-	var allProfile []Profile
+// returns all profiles from vault.json, or creates the file if it doesn't exist
+func returnAllProfilesFromJson() []Profile {
+	var profiles []Profile
 
 	data, err := os.ReadFile(fileName)
 	if err != nil {
-		fmt.Println(err)
-		panic("Unable to read the file")
+		// If file doesn't exist, create it with an empty json array []
+		if os.IsNotExist(err) {
+			_ = os.WriteFile(fileName, []byte("[]"), 0644)
+			return profiles
+		}
+		fmt.Println("Error reading file:", err)
+		return profiles
 	}
 
-	err = json.Unmarshal(data, &allProfile)
+	if len(data) == 0 {
+		return profiles
+	}
+
+	err = json.Unmarshal(data, &profiles)
 	if err != nil {
-		fmt.Println(err)
-		panic("Unable to perform json unmarshal!")
+		fmt.Println("Error reading JSON data:", err)
+		return profiles
 	}
 
-	// validating if same username is already exist or not
+	return profiles
+}
+
+// saves full profiles slice into vault.json
+func saveFullProfileIntoJson(profiles []Profile) {
+	data, err := json.MarshalIndent(profiles, "", "    ")
+	if err != nil {
+		fmt.Println("Error encoding JSON:", err)
+		return
+	}
+
+	err = os.WriteFile(fileName, data, 0644)
+	if err != nil {
+		fmt.Println("Error writing to file:", err)
+	}
+}
+
+// saves a new profile to vault.json
+func (newProfile Profile) saveProfile() {
+	allProfile := returnAllProfilesFromJson()
+
+	// validating if same username already exists
 	for _, profile := range allProfile {
 		if profile.Username == newProfile.Username {
-			panic("Username is already exist!")
+			fmt.Println("Username already exists!")
+			return
 		}
 	}
 
 	allProfile = append(allProfile, newProfile)
-
-	data, err = json.Marshal(allProfile)
-	if err != nil {
-		fmt.Println(err)
-		panic("Unable to perform json marshal!")
-	}
-
-	// writing the file with new data here
-	err = os.WriteFile(fileName, data, 0600)
+	saveFullProfileIntoJson(allProfile)
+	fmt.Println("Successfully added!")
 }

@@ -1,9 +1,10 @@
 package main
 
 import (
-	"encoding/json"
+	"bufio"
 	"fmt"
 	"os"
+	"strings"
 )
 
 // ####################################
@@ -11,57 +12,93 @@ import (
 // ####################################
 
 func handleHelpCommand() {
-	fmt.Println(`
+	fmt.Print(`
 Valt - Simple Password Vault
 
 Usage:
+   vault help
    vault new
    vault list
    vault get <username>
-   vault update <username>
-   vault delete <username>
-   vault change-username <old> <new>
+   vault change-username <old-username> <new-username>
    vault change-password <username> <new-password>
-     `)
+   vault delete <username>
+`)
 }
 
 // vault new
 func handleNewCommand() {
+	scanner := bufio.NewScanner(os.Stdin)
 	var user Profile
 
 	fmt.Print("Enter Name : ")
-	fmt.Scanln(&user.Name)
+	if scanner.Scan() {
+		user.Name = strings.TrimSpace(scanner.Text())
+	}
 
 	fmt.Print("Enter Username : ")
-	fmt.Scanln(&user.Username)
+	if scanner.Scan() {
+		user.Username = strings.TrimSpace(scanner.Text())
+	}
 
-	fmt.Print("Enter password : ")
-	fmt.Scanln(&user.Password)
+	fmt.Print("Enter Password : ")
+	if scanner.Scan() {
+		user.Password = strings.TrimSpace(scanner.Text())
+	}
+
+	if user.Username == "" {
+		fmt.Println("Username cannot be empty!")
+		return
+	}
 
 	user.saveProfile()
-	fmt.Println("Successfully added!")
 }
 
 // vault list
 func handleListCommand() {
 	profiles := returnAllProfilesFromJson()
 
-	for idx, profile := range profiles {
-		fmt.Printf("index : %d \nName : %s \nUsername : %s \npassword : %s \n\n", idx, profile.Name, profile.Username, profile.Password)
+	if len(profiles) == 0 {
+		fmt.Println("No profiles found in vault.")
+		return
 	}
 
+	for idx, profile := range profiles {
+		fmt.Printf("index : %d \nName : %s \nUsername : %s \nPassword : %s \n\n", idx, profile.Name, profile.Username, profile.Password)
+	}
 }
 
-// vault change-username existing_username new_username
+// vault get <username>
+func handleGetCommand(username string) {
+	profiles := returnAllProfilesFromJson()
+
+	for idx, profile := range profiles {
+		if profile.Username == username {
+			fmt.Printf("index : %d \nName : %s \nUsername : %s \nPassword : %s \n\n", idx, profile.Name, profile.Username, profile.Password)
+			return
+		}
+	}
+
+	fmt.Println("User not found!")
+}
+
+// vault change-username <old-username> <new-username>
 func handleChangeUsernameCommand(preUsername, newUsername string) {
-	Profiles := returnAllProfilesFromJson()
+	profiles := returnAllProfilesFromJson()
 	isExist := false
 
-	for idx, profile := range Profiles {
-		if profile.Username == preUsername {
-			Profiles[idx].Username = newUsername
-			saveFullProfileIntoJson(Profiles)
+	// check if new username is already taken
+	for _, profile := range profiles {
+		if profile.Username == newUsername {
+			fmt.Println("The new username is already taken!")
+			return
+		}
+	}
 
+	for idx, profile := range profiles {
+		if profile.Username == preUsername {
+			profiles[idx].Username = newUsername
+			saveFullProfileIntoJson(profiles)
 			fmt.Println("Username is successfully updated now!")
 			isExist = true
 			break
@@ -69,20 +106,19 @@ func handleChangeUsernameCommand(preUsername, newUsername string) {
 	}
 
 	if !isExist {
-		fmt.Println("This username isnt exist!")
+		fmt.Println("This username doesn't exist!")
 	}
 }
 
-// vault change-username existing_username new_username
+// vault change-password <username> <new-password>
 func handleChangePasswordCommand(username, newPassword string) {
-	Profiles := returnAllProfilesFromJson()
+	profiles := returnAllProfilesFromJson()
 	isExist := false
 
-	for idx, profile := range Profiles {
+	for idx, profile := range profiles {
 		if profile.Username == username {
-			Profiles[idx].Password = newPassword
-			saveFullProfileIntoJson(Profiles)
-
+			profiles[idx].Password = newPassword
+			saveFullProfileIntoJson(profiles)
 			fmt.Println("Password is successfully updated now!")
 			isExist = true
 			break
@@ -90,7 +126,7 @@ func handleChangePasswordCommand(username, newPassword string) {
 	}
 
 	if !isExist {
-		fmt.Println("This username isnt exist!")
+		fmt.Println("This username doesn't exist!")
 	}
 }
 
@@ -103,6 +139,7 @@ func handleUserDeleteCommand(username string) {
 		if profile.Username == username {
 			profiles = append(profiles[:idx], profiles[idx+1:]...)
 			saveFullProfileIntoJson(profiles)
+			fmt.Println("User successfully deleted!")
 			isDeleted = true
 			break
 		}
@@ -115,43 +152,4 @@ func handleUserDeleteCommand(username string) {
 
 // ####################################
 // COMMANDS FUNCTIONS END
-// ####################################
-
-// ####################################
-// HELPER FUNCTIONS START
-// ####################################
-
-// this returns all the profiles from the json file
-// file name : vault.json
-func returnAllProfilesFromJson() []Profile {
-	var profile []Profile
-
-	data, err := os.ReadFile(fileName)
-	if err != nil {
-		panic("Unable to read file in method returnAllProfilesFromJson()")
-	}
-
-	err = json.Unmarshal(data, &profile)
-	if err != nil {
-		panic("Unable to unmarsha in returnAllProfilesFromJson()")
-	}
-
-	return profile
-}
-
-// this saves profiles into the json
-func saveFullProfileIntoJson(profiles []Profile) {
-	data, err := json.MarshalIndent(profiles, "", " ")
-	if err != nil {
-		panic("Error while converting profiles into json!")
-	}
-
-	err = os.WriteFile(fileName, data, 0600)
-	if err != nil {
-		panic("Error while writing on file!")
-	}
-}
-
-// ####################################
-// HELPER FUNCTIONS END
 // ####################################
